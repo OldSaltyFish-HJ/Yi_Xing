@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="commodities">
+        <item>口罩</item>
+        <item>洗手液</item>
+        <item>消毒液</item>
+        <item>护目镜</item>
+        <item>一次性手套</item>
+    </string-array>
+</resources>
