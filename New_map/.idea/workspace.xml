@@ -36,13 +36,27 @@
         <option value="Class" />
         <option value="valueResourceFile" />
         <option value="layoutResourceFile" />
+        <option value="resourceFile" />
       </list>
     </option>
   </component>
   <component name="ProjectId" id="1dPCTMJnT8Y4O3oSE4pW8qbOGuC" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/app/src/main/res/drawable-v24" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="G:\extracurricular\other_competition\google\girl_hackathon\YiXing\New_map\app\src\main\res\drawable-v24" />
+      <recent name="G:\extracurricular\other_competition\google\girl_hackathon\YiXing\New_map\app\src\main\res\drawable" />
+    </key>
+    <key name="android.template.packageName">
+      <recent name="com.example.new_map" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="G:\extracurricular\other_competition\google\girl_hackathon\YiXing\New_map\app\src\main\res\drawable-v24" />
+      <recent name="G:\extracurricular\other_competition\google\girl_hackathon\YiXing\New_map\app\src\main\res\layout" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#EFF3F7" />
+    <stroke
+        android:width="1dp"
+        android:color="#576C81"/>
+    <corners
+    android:topLeftRadius="23dp"
+    android:topRightRadius="23dp"
+    android:bottomRightRadius="23dp"
+    android:bottomLeftRadius="23dp"/>
+</shape>-->
+<selector
+xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/search_button_picture" />
+    <item android:state_pressed="true" android:drawable="@drawable/search_button_picture_2" />
+    <item android:state_selected="true" android:drawable="@drawable/search_button_picture" />
+    <item android:drawable="@drawable/search_button_picture" />
+</selector>
