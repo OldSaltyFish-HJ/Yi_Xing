@@ -46,7 +46,8 @@
                     android:layout_marginTop="30dp">
                     <LinearLayout
                         android:layout_marginLeft="45dp"
-                        android:layout_width="320dp"
+                        android:layout_marginRight="45dp"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:background="@drawable/search_input">
@@ -59,11 +60,11 @@
                             android:gravity="center"
                             android:textSize="20dp"/>
                         <Button
+                            android:layout_marginLeft="15dp"
                             android:id="@+id/search_button"
                             android:onClick="searchButton"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:layout_marginLeft="62dp"
                             android:background="@drawable/search_button"/>
                     </LinearLayout>
 
