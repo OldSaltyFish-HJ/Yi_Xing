@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -40,10 +41,13 @@ import com.amap.api.maps.MapView;
 import com.amap.api.maps.UiSettings;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.LatLngBounds;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
+import com.amap.api.maps.model.PolygonOptions;
 import com.amap.api.navi.services.search.model.LatLonPoint;
+import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -54,9 +58,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -64,6 +70,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClickListener, AMap.InfoWindowAdapter, AMap.OnMapClickListener, LocationSource, AMapLocationListener {
+
+    public static final String host = "http://120.78.73.158/girl_hackathon/";
+    public static final String coordinatesUploadUrl = host + "uploadCoordinates.php";
 
     /**
      * 地图相关变量
@@ -78,12 +87,12 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private boolean isFirstLoc = true;//标识，用于判断是否只显示一次定位信息和用户重新定位
 
     double latitude = -1;
-    double longtitude = -1;
+    double longitude = -1;
 
     /**
      * 地图数据
      * */
-    public ArrayList<ArrayList<Pair<Double, Double>>> coordinates = new ArrayList<ArrayList<Pair<Double, Double>>>();
+    public ArrayList<ArrayList<LatLng>> coordinates = new ArrayList<ArrayList<LatLng>>();
     ArrayList<String> commoditiesList = new ArrayList<String>();
 
     /**
@@ -117,12 +126,12 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
      * */
     public void dataInsert() {
         for (int i = 0; i < 5; ++i) {
-            coordinates.add(new ArrayList<Pair<Double, Double>>());
+            coordinates.add(new ArrayList<LatLng>());
             for (int j = 0; j < 10; ++j) {
                 double x = Math.random(), y = Math.random();
                 if (x > 0.5) x -= 1;
                 if (y > 0.5) y -= 1;
-                coordinates.get(i).add(new Pair<>(30.620184979761223 + x * 0.005, 104.04852122882592 + y * 0.005));
+                coordinates.get(i).add(new LatLng(30.620184979761223 + x * 0.005, 104.04852122882592 + y * 0.005));
                 //System.out.println(x + " " + y);
             }
         }
@@ -214,6 +223,8 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         return null;
     }
 
+    private Vector<LatLng>tmpPoints = new Vector<>();
+
     /**
      * 地图点击事件
      * 点击地图区域让当前展示的窗体隐藏
@@ -226,12 +237,10 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         }
         aMap.clear();
 
-        /**
-         * 点击改变蓝圆标位置，在控制台打印点击位置
-         * */
-        latitude=latLng.latitude;
-        longtitude=latLng.longitude;
-        System.out.println(latitude + "," + longtitude);
+        //点击改变蓝圆标位置，在控制台打印点击位置
+        System.out.println(latLng.latitude + "," + latLng.longitude);
+        tmpPoints.add(latLng);
+        drawPolygon(tmpPoints);
         MarkerOptions markerOptions = new MarkerOptions();
         //markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.placeholder));
         markerOptions.position(latLng);
@@ -243,17 +252,19 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
      * 搜索按钮绑定事件
      * */
     public void searchButton(View view) {
-        String searchContent = searchText.getText().toString();
+        /*String searchContent = searchText.getText().toString();
         System.out.println(searchContent);
         aMap.clear(true);
         int id = Integer.parseInt(searchContent);
-        for (Pair<Double, Double> pair : coordinates.get(id)) {
-            drawMarker(pair.first, pair.second, commoditiesList.get(id) + ":", "余量：" + (int)(Math.random() * 100));
-        }
+        for (LatLng item : coordinates.get(id)) {
+            drawMarker(item.latitude, item.longitude, commoditiesList.get(id) + ":", "余量：" + (int)(Math.random() * 100));
+        }*/
+
+        postDataWithParame(coordinatesUploadUrl, new Gson().toJson(tmpPoints));
     }
 
     /**
-     * 判断是否需要隐藏输入框
+     * 判断是否需要隐藏输入法
      * */
     private boolean isShouldHideInput(View v, MotionEvent event) {
         if (v != null && (v instanceof EditText)) {
@@ -273,7 +284,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     }
 
     /**
-     * 点击其他地方后隐藏输入框
+     * 点击其他地方后隐藏输入法
      * */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -377,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private void getDataAsync() {
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
-                .url("http://120.78.73.158/girl_hackathon/1.php")
+                .url("http://120.78.73.158/girl_hackathon/test.php?a=1")
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -395,6 +406,53 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                 }
             }
         });
+    }
+
+    /**
+     * post异步请求
+     * */
+    private void postDataWithParame(String url, String json) {
+        System.out.println(url);
+        System.out.println(json);
+        OkHttpClient okHttpClient  = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10,TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .build();
+        /*Gson gson = new Gson();
+        //使用Gson将对象转换为json字符串
+        Vector<String>tmp = new Vector<String>();
+        tmp.add("try a try");
+        tmp.add("ac is ok");
+        String json = gson.toJson(tmp);*/
+
+        //MediaType  设置Content-Type 标头中包含的媒体类型值
+        RequestBody requestBody = FormBody.create(MediaType.parse("application/json; charset=utf-8")
+                , json);
+
+        Request request = new Request.Builder()
+                .url(url)//请求的url
+                .post(requestBody)
+                .build();
+
+        //创建/Call
+        Call call = okHttpClient.newCall(request);
+        //加入队列 异步操作
+        call.enqueue(new Callback() {
+            //请求错误回调方法
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println("连接失败");
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.println("response print == " + response.body().string());
+                Log.d("kwwl","获取数据成功了");
+                Log.d("kwwl","response.code()=="+response.code());
+                Log.d("kwwl","response.body().string()=="+response.body().string());
+            }
+        });
+        tmpPoints.clear();
     }
 
     @Override
@@ -452,17 +510,35 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         }
     }
 
+    /**
+     * 绘制多边形
+     * 按顺序连接points中的点并填充
+     * */
+    public void drawPolygon(Vector<LatLng> points) {
+        // 声明 多边形参数对象
+        PolygonOptions polygonOptions = new PolygonOptions();
+        // 添加 多边形的每个顶点（顺序添加）
+        for (LatLng point : points) {
+            polygonOptions.add(point);
+        }
+        polygonOptions.strokeWidth(4) // 多边形的边框
+                .strokeColor(Color.argb(50, 1, 1, 1)) // 边框颜色
+                .fillColor(Color.argb(50, 1, 0, 0));   // 多边形的填充色
+        aMap.addPolygon(polygonOptions);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        getDataAsync();
+        //getDataAsync();
 
         //printTime();
         componentBinding();//组件绑定
         dataInsert();//插入假数据
+
         renderMap(savedInstanceState);//地图展示
         //SpinnerSetting();//设置下拉框
     }
