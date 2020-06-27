@@ -45,11 +45,21 @@ import com.amap.api.maps.model.LatLngBounds;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
+import com.amap.api.maps.model.Polygon;
 import com.amap.api.maps.model.PolygonOptions;
 import com.amap.api.navi.services.search.model.LatLonPoint;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -73,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
 
     public static final String host = "http://120.78.73.158/girl_hackathon/";
     public static final String coordinatesUploadUrl = host + "uploadCoordinates.php";
+    public static  final  String getPolygonUrl = host + "getPolygons.php";
 
     /**
      * 地图相关变量
@@ -85,6 +96,9 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     public AMapLocationClientOption mLocationOption = null;//声明mLocationOption对象，定位参数
     private LocationSource.OnLocationChangedListener mListener = null;//声明mListener对象，定位监听器
     private boolean isFirstLoc = true;//标识，用于判断是否只显示一次定位信息和用户重新定位
+
+    PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
+    Polygon polygon = null;
 
     double latitude = -1;
     double longitude = -1;
@@ -116,9 +130,8 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     /**
      * 绘制坐标标记
      */
-    public void drawMarker(Double x, Double y, String title, String snippet) {
-        LatLng latLng = new LatLng(x,y);
-        final Marker marker = aMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet));
+    public void drawMarker(LatLng latLng, String title, String snippet) {
+        final Marker marker = aMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet).draggable(true));
     }
 
     /**
@@ -223,6 +236,14 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         return null;
     }
 
+    private void drawMap(Vector<LatLng>points) {
+        aMap.clear();
+        for (LatLng point : points) {
+            drawMarker(point, "", "");
+        }
+        drawPolygon(points);
+    }
+
     private Vector<LatLng>tmpPoints = new Vector<>();
 
     /**
@@ -235,17 +256,19 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         if (clickMaker != null && clickMaker.isInfoWindowShown()) {
             clickMaker.hideInfoWindow();
         }
-        aMap.clear();
+        //aMap.clear();
 
         //点击改变蓝圆标位置，在控制台打印点击位置
         System.out.println(latLng.latitude + "," + latLng.longitude);
         tmpPoints.add(latLng);
-        drawPolygon(tmpPoints);
+        drawMap(tmpPoints);
         MarkerOptions markerOptions = new MarkerOptions();
         //markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.placeholder));
         markerOptions.position(latLng);
-        aMap.addMarker(markerOptions);
-        aMap.moveCamera(CameraUpdateFactory.changeLatLng(latLng));
+        Marker marker = aMap.addMarker(markerOptions);
+        System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
+
+        //aMap.moveCamera(CameraUpdateFactory.changeLatLng(latLng));
     }
 
     /**
@@ -382,13 +405,28 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         System.out.println(year+"年"+month+"月"+day+"日"+hour+":"+minute+":"+second);
     }
 
+
+    class Point {
+        public String polygonId;
+        public String latitude;
+        public String longitude;
+        public Point(String latitude, String longitude, String polygonId) {
+            super();
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.polygonId  = polygonId;
+        }
+    }
+
+    private Vector<Point> getJsonArray = new Vector<>();
+
     /**
      * get异步请求
      * */
-    private void getDataAsync() {
+    private void getDataAsync(String url) {
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
-                .url("http://120.78.73.158/girl_hackathon/test.php?a=1")
+                .url(url)
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -400,9 +438,38 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                 if(response.isSuccessful()){//回调的方法执行在子线程。
                     Log.d("kwwl","获取数据成功了");
                     Log.d("kwwl","response.code()=="+response.code());
-                    Log.d("kwwl","response.body().string()=="+response.body().string());
+                    String responseString = response.body().string();
+                    Log.d("kwwl","response.body().string()==" + responseString);
                     System.out.println("connect success");
-                    System.out.println(" " + response.body().string());
+
+                    //Json的解析类对象
+                    JsonParser parser = new JsonParser();
+                    //将JSON的String 转成一个JsonArray对象
+                    JsonArray jsonArray = parser.parse(responseString).getAsJsonArray();
+                    Gson gson = new Gson();
+                    ArrayList<Point> pointList = new ArrayList<>();
+                    //加强for循环遍历JsonArray
+                    for (JsonElement user : jsonArray) {
+                        //使用GSON，直接转成Bean对象
+                        Point userBean = gson.fromJson(user, Point.class);
+                        //System.out.println(userBean.latitude);
+                        getJsonArray.add(userBean);
+                    }
+                    //mainLView.setAdapter(new UserAdapter(this, userBeanList));
+
+                    Vector<LatLng>tmp = new Vector<>();
+                    for (int i = 0; i < getJsonArray.size(); ++i) {
+                        if (i != 0 && Integer.parseInt(getJsonArray.get(i).polygonId) != Integer.parseInt(getJsonArray.get(i - 1).polygonId)) {
+                            drawPolygon(tmp);
+                            tmp.clear();
+                        }
+                        tmp.add(new LatLng(Double.parseDouble(getJsonArray.get(i).latitude), Double.parseDouble(getJsonArray.get(i).longitude)));
+                    }
+                    drawPolygon(tmp);
+                    System.out.println(tmp.size());
+                    System.out.println(new Gson().toJson(getJsonArray));
+                    System.out.println(new Gson().toJson(tmp));
+                    tmp.clear();
                 }
             }
         });
@@ -510,13 +577,13 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         }
     }
 
+    private int pos;
     /**
      * 绘制多边形
      * 按顺序连接points中的点并填充
      * */
     public void drawPolygon(Vector<LatLng> points) {
-        // 声明 多边形参数对象
-        PolygonOptions polygonOptions = new PolygonOptions();
+        polygonOptions.getPoints().clear();
         // 添加 多边形的每个顶点（顺序添加）
         for (LatLng point : points) {
             polygonOptions.add(point);
@@ -525,7 +592,63 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                 .strokeColor(Color.argb(50, 1, 1, 1)) // 边框颜色
                 .fillColor(Color.argb(50, 1, 0, 0));   // 多边形的填充色
         aMap.addPolygon(polygonOptions);
+        aMap.setOnMarkerDragListener(new AMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDragStart(Marker marker) {
+                //开始拖拽时，把集合里的该点删除掉
+                pos = -1;
+                System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
+                for (int i = 0; i < tmpPoints.size(); ++i) {
+                    if (Math.abs(tmpPoints.get(i).latitude - marker.getPosition().latitude) < 0.0005
+                            && Math.abs(tmpPoints.get(i).longitude - marker.getPosition().longitude) < 0.0005) {
+                        pos = i;
+                        System.out.println("移除第" + pos + "个");
+                        break;
+                    }
+                }
+            }
+
+            @Override
+            public void onMarkerDragEnd(Marker marker) {
+                if (pos != -1) {
+                    tmpPoints.remove(pos);
+                    //拖拽结束时，创建新点
+                    tmpPoints.add(pos, marker.getPosition());
+                }
+                //drawMap(tmpPoints);
+                //判断是否需要创建新的点
+            /*if (!isCreateMarker(marker)) {
+                //不需要
+                //如果拖拽的是状态为0的点，则不需要创建新的点，而是替换两侧的点的坐标（注意是替换set方法）。
+                replaceTwoMarker(marker);
+                refreshPolygonOptions();
+                addMarker(true);
+                createAreaStyle();
+                aMap.addPolygon(polygonOptions);
+            } else {
+                //需要
+                refreshPolygonOptions();
+                addMarker(true);
+                createAreaStyle();
+                aMap.addPolygon(polygonOptions);
+                //在拖拽点两侧添加maker
+                addTwoMarker(marker);
+                addMarker(false);
+            }*/
+            }
+
+            @Override
+            public void onMarkerDrag(Marker marker) {
+                if (pos != -1) {
+                    tmpPoints.remove(pos);
+                    tmpPoints.add(pos, marker.getPosition());
+                    drawMap(tmpPoints);
+                }
+            }
+        });
     }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -533,7 +656,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //getDataAsync();
 
         //printTime();
         componentBinding();//组件绑定
@@ -541,6 +663,8 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
 
         renderMap(savedInstanceState);//地图展示
         //SpinnerSetting();//设置下拉框
+
+        getDataAsync(getPolygonUrl);
     }
 
     @Override
