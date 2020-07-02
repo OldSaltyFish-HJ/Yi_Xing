@@ -81,9 +81,6 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClickListener, AMap.InfoWindowAdapter, AMap.OnMapClickListener, LocationSource, AMapLocationListener {
 
-    public static final String host = "http://120.78.73.158/girl_hackathon/";
-    public static final String coordinatesUploadUrl = host + "uploadCoordinates.php";
-    public static  final  String getPolygonUrl = host + "getPolygons.php";
 
     /**
      * 地图相关变量
@@ -97,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private LocationSource.OnLocationChangedListener mListener = null;//声明mListener对象，定位监听器
     private boolean isFirstLoc = true;//标识，用于判断是否只显示一次定位信息和用户重新定位
 
-    PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
     Polygon polygon = null;
 
     double latitude = -1;
@@ -107,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
      * 地图数据
      * */
     public ArrayList<ArrayList<LatLng>> coordinates = new ArrayList<ArrayList<LatLng>>();
-    ArrayList<String> commoditiesList = new ArrayList<String>();
+    //ArrayList<String> commoditiesList = new ArrayList<String>();
 
     /**
      * 点标记相关变量
@@ -127,17 +123,104 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private EditText searchText;
     private Button searchButton;
 
-    /**
-     * 绘制坐标标记
-     */
-    public void drawMarker(LatLng latLng, String title, String snippet) {
-        final Marker marker = aMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet).draggable(true));
+    public class NetRequest {
+        public static final String host = "http://120.78.73.158/girl_hackathon/";
+        public static final String coordinatesUploadUrl = host + "uploadCoordinates.php";
+        public static final String getPolygonUrl = host + "getPolygons.php";
+        public static final String shopPositionUploadUrl = host + "shopPositionUpload.php";
+        public static final String getShopsUrl = host + "getShops.php";
+
+        protected String responseString;
+
+        public void afterGet() {}
+        public void afterPost() {}
+
+        /**
+         * get异步请求
+         * */
+        public void getDataAsync(String url) {
+            OkHttpClient client = new OkHttpClient();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .build();
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    System.out.println(e);
+                }
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if(response.isSuccessful()){//回调的方法执行在子线程。
+                        responseString = response.body().string();
+                        Log.d("kwwl","获取数据成功了");
+                        Log.d("kwwl","response.code()=="+response.code());
+                        Log.d("kwwl","response.body().string()==" + responseString);
+                        System.out.println("connect success");
+                        afterGet();
+                    }
+                }
+            });
+        }
+
+        /**
+         * post异步请求
+         * */
+        public void postDataWithParame(String url, String json) {
+            System.out.println(url);
+            System.out.println(json);
+            OkHttpClient okHttpClient  = new OkHttpClient.Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .writeTimeout(10,TimeUnit.SECONDS)
+                    .readTimeout(20, TimeUnit.SECONDS)
+                    .build();
+
+            //MediaType  设置Content-Type 标头中包含的媒体类型值
+            RequestBody requestBody = FormBody.create(MediaType.parse("application/json; charset=utf-8")
+                    , json);
+
+            Request request = new Request.Builder()
+                    .url(url)//请求的url
+                    .post(requestBody)
+                    .build();
+
+            //创建/Call
+            Call call = okHttpClient.newCall(request);
+            //加入队列 异步操作
+            call.enqueue(new Callback() {
+                //请求错误回调方法
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    System.out.println("连接失败");
+                }
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    System.out.println("response print == " + response.body().string());
+                    Log.d("kwwl","获取数据成功了");
+                    Log.d("kwwl","response.code()=="+response.code());
+                    Log.d("kwwl","response.body().string()=="+response.body().string());
+
+                    afterPost();
+
+                    /*tmpPoints.clear();
+                    getDataAsync(getPolygonUrl);
+                    drawMap(tmpPoints);*/
+                }
+            });
+
+        }
     }
 
     /**
-     * 数据插入，目前是假数据，实际应该从数据库中获取
+     * 绘制坐标标记
+     */
+    public void drawMarker(LatLng latLng, String title, String snippet, boolean draggable) {
+        final Marker marker = aMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet).draggable(draggable));
+    }
+
+    /**
+     * 假数据数据插入，现在已经从数据库中获取了，所以此段没有用到
      * */
-    public void dataInsert() {
+    /*public void dataInsert() {
         for (int i = 0; i < 5; ++i) {
             coordinates.add(new ArrayList<LatLng>());
             for (int j = 0; j < 10; ++j) {
@@ -153,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         commoditiesList.add("消毒液");
         commoditiesList.add("护目镜");
         commoditiesList.add("一次性手套");
-    }
+    }*/
 
     /**
      * 地图展示
@@ -239,9 +322,10 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private void drawMap(Vector<LatLng>points) {
         aMap.clear();
         for (LatLng point : points) {
-            drawMarker(point, "", "");
+            drawMarker(point, "", "", false);
         }
         drawPolygon(points);
+        //drawGetPoints();
     }
 
     private Vector<LatLng>tmpPoints = new Vector<>();
@@ -266,24 +350,108 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         //markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.placeholder));
         markerOptions.position(latLng);
         Marker marker = aMap.addMarker(markerOptions);
-        System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
+        //System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
 
         //aMap.moveCamera(CameraUpdateFactory.changeLatLng(latLng));
+    }
+
+    class GetPolgonRequest extends NetRequest {
+        class Point {
+            public String polygonId;
+            public String latitude;
+            public String longitude;
+            public Point(String latitude, String longitude, String polygonId) {
+                super();
+                this.latitude = latitude;
+                this.longitude = longitude;
+                this.polygonId  = polygonId;
+            }
+        }
+        /**
+         * 用来存储get得到的解析好的多边形数组信息
+         * */
+        private Vector<Point> getPolygonArray = new Vector<>();
+        /**
+         * 用来绘制get得到的多边形
+         * */
+        private void drawGetPoints() {
+            Vector<LatLng>tmp = new Vector<>();
+            for (int i = 0; i < getPolygonArray.size(); ++i) {
+                if (i != 0 && Integer.parseInt(getPolygonArray.get(i).polygonId) != Integer.parseInt(getPolygonArray.get(i - 1).polygonId)) {
+                    //System.out.println(i + " : " + Integer.parseInt(getJsonArray.get(i).polygonId));
+                    drawPolygon(tmp);
+                    tmp.clear();
+                }
+                tmp.add(new LatLng(Double.parseDouble(getPolygonArray.get(i).latitude), Double.parseDouble(getPolygonArray.get(i).longitude)));
+            }
+            drawPolygon(tmp);
+            System.out.println(tmp.size());
+            System.out.println(new Gson().toJson(getPolygonArray));
+            tmp.clear();
+        }
+        @Override
+        public void afterGet() {
+            getPolygonArray.clear();
+            JsonParser parser = new JsonParser();
+            //将JSON的String 转成一个JsonArray对象
+            JsonArray jsonArray = parser.parse(responseString).getAsJsonArray();
+            Gson gson = new Gson();
+            ArrayList<Point> shopList = new ArrayList<>();
+            //加强for循环遍历JsonArray
+            for (JsonElement user : jsonArray) {
+                //使用GSON，直接转成Bean对象
+                Point userBean = gson.fromJson(user, Point.class);
+                //System.out.println(userBean.latitude);
+                getPolygonArray.add(userBean);
+            }
+            //mainLView.setAdapter(new UserAdapter(this, userBeanList));
+            drawGetPoints();
+        }
+    }
+
+    class GetShopsRequest extends NetRequest {
+        class Shop {
+            public String latitude;
+            public String longitude;
+            public String name;
+            public String remain;
+        }
+        private Vector<Shop> getShopArray = new Vector<>();
+        public void drawShopMarker() {
+            for (Shop shop : getShopArray) {
+                drawMarker(new LatLng(Double.parseDouble(shop.latitude), Double.parseDouble(shop.longitude)), shop.name, shop.remain, false);
+            }
+        }
+        @Override
+        public void afterGet() {
+            super.afterGet();
+            //Json的解析类对象
+            JsonParser parser = new JsonParser();
+            //将JSON的String 转成一个JsonArray对象
+            JsonArray jsonArray = parser.parse(responseString).getAsJsonArray();
+            Gson gson = new Gson();
+            ArrayList<Shop> shopList = new ArrayList<>();
+            //加强for循环遍历JsonArray
+            for (JsonElement user : jsonArray) {
+                //使用GSON，直接转成Bean对象
+                Shop userBean = gson.fromJson(user, Shop.class);
+                //System.out.println(userBean.latitude);
+                getShopArray.add(userBean);
+            }
+            drawShopMarker();
+            //mainLView.setAdapter(new UserAdapter(this, userBeanList));
+        }
     }
 
     /**
      * 搜索按钮绑定事件
      * */
     public void searchButton(View view) {
-        /*String searchContent = searchText.getText().toString();
-        System.out.println(searchContent);
+        Log.d("kwwl","enter searchButton");
+        String searchContent = searchText.getText().toString();
+        System.out.println("search content == " + searchContent);
         aMap.clear(true);
-        int id = Integer.parseInt(searchContent);
-        for (LatLng item : coordinates.get(id)) {
-            drawMarker(item.latitude, item.longitude, commoditiesList.get(id) + ":", "余量：" + (int)(Math.random() * 100));
-        }*/
-
-        postDataWithParame(coordinatesUploadUrl, new Gson().toJson(tmpPoints));
+        new GetShopsRequest().getDataAsync(GetShopsRequest.getShopsUrl + "?searchContent=" + searchContent);
     }
 
     /**
@@ -329,7 +497,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     }
 
     /**
-     * 下拉框相关设置
+     * 下拉框相关设置，太丑所以没有用到
      * 后面觉得下拉框写的太丑了就注释掉了
      * 以后需要还可以用所以没有删掉
      * */
@@ -405,123 +573,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         System.out.println(year+"年"+month+"月"+day+"日"+hour+":"+minute+":"+second);
     }
 
-
-    class Point {
-        public String polygonId;
-        public String latitude;
-        public String longitude;
-        public Point(String latitude, String longitude, String polygonId) {
-            super();
-            this.latitude = latitude;
-            this.longitude = longitude;
-            this.polygonId  = polygonId;
-        }
-    }
-
-    private Vector<Point> getJsonArray = new Vector<>();
-
-    /**
-     * get异步请求
-     * */
-    private void getDataAsync(String url) {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                System.out.println(e);
-            }
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if(response.isSuccessful()){//回调的方法执行在子线程。
-                    Log.d("kwwl","获取数据成功了");
-                    Log.d("kwwl","response.code()=="+response.code());
-                    String responseString = response.body().string();
-                    Log.d("kwwl","response.body().string()==" + responseString);
-                    System.out.println("connect success");
-
-                    //Json的解析类对象
-                    JsonParser parser = new JsonParser();
-                    //将JSON的String 转成一个JsonArray对象
-                    JsonArray jsonArray = parser.parse(responseString).getAsJsonArray();
-                    Gson gson = new Gson();
-                    ArrayList<Point> pointList = new ArrayList<>();
-                    //加强for循环遍历JsonArray
-                    for (JsonElement user : jsonArray) {
-                        //使用GSON，直接转成Bean对象
-                        Point userBean = gson.fromJson(user, Point.class);
-                        //System.out.println(userBean.latitude);
-                        getJsonArray.add(userBean);
-                    }
-                    //mainLView.setAdapter(new UserAdapter(this, userBeanList));
-
-                    Vector<LatLng>tmp = new Vector<>();
-                    for (int i = 0; i < getJsonArray.size(); ++i) {
-                        if (i != 0 && Integer.parseInt(getJsonArray.get(i).polygonId) != Integer.parseInt(getJsonArray.get(i - 1).polygonId)) {
-                            drawPolygon(tmp);
-                            tmp.clear();
-                        }
-                        tmp.add(new LatLng(Double.parseDouble(getJsonArray.get(i).latitude), Double.parseDouble(getJsonArray.get(i).longitude)));
-                    }
-                    drawPolygon(tmp);
-                    System.out.println(tmp.size());
-                    System.out.println(new Gson().toJson(getJsonArray));
-                    System.out.println(new Gson().toJson(tmp));
-                    tmp.clear();
-                }
-            }
-        });
-    }
-
-    /**
-     * post异步请求
-     * */
-    private void postDataWithParame(String url, String json) {
-        System.out.println(url);
-        System.out.println(json);
-        OkHttpClient okHttpClient  = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10,TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .build();
-        /*Gson gson = new Gson();
-        //使用Gson将对象转换为json字符串
-        Vector<String>tmp = new Vector<String>();
-        tmp.add("try a try");
-        tmp.add("ac is ok");
-        String json = gson.toJson(tmp);*/
-
-        //MediaType  设置Content-Type 标头中包含的媒体类型值
-        RequestBody requestBody = FormBody.create(MediaType.parse("application/json; charset=utf-8")
-                , json);
-
-        Request request = new Request.Builder()
-                .url(url)//请求的url
-                .post(requestBody)
-                .build();
-
-        //创建/Call
-        Call call = okHttpClient.newCall(request);
-        //加入队列 异步操作
-        call.enqueue(new Callback() {
-            //请求错误回调方法
-            @Override
-            public void onFailure(Call call, IOException e) {
-                System.out.println("连接失败");
-            }
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                System.out.println("response print == " + response.body().string());
-                Log.d("kwwl","获取数据成功了");
-                Log.d("kwwl","response.code()=="+response.code());
-                Log.d("kwwl","response.body().string()=="+response.body().string());
-            }
-        });
-        tmpPoints.clear();
-    }
-
     @Override
     public void onLocationChanged(AMapLocation aMapLocation) {
         if (aMapLocation != null) {
@@ -579,11 +630,18 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
 
     private int pos;
     /**
+     * 计算两个坐标距离的平方
+     * */
+    private double squareOfDistance(LatLng point1, LatLng point2) {
+        return (point1.latitude - point2.latitude) * (point1.latitude - point2.latitude)
+                + (point1.longitude -point2.longitude) * (point1.longitude -point1.longitude);
+    }
+    /**
      * 绘制多边形
      * 按顺序连接points中的点并填充
      * */
     public void drawPolygon(Vector<LatLng> points) {
-        polygonOptions.getPoints().clear();
+        PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
         // 添加 多边形的每个顶点（顺序添加）
         for (LatLng point : points) {
             polygonOptions.add(point);
@@ -595,17 +653,17 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         aMap.setOnMarkerDragListener(new AMap.OnMarkerDragListener() {
             @Override
             public void onMarkerDragStart(Marker marker) {
-                //开始拖拽时，把集合里的该点删除掉
                 pos = -1;
                 System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
+                //判断哪个已经marker离点击的位置距离小于0.0005且最靠近点击的位置，就是我们实际要改变坐标的点
                 for (int i = 0; i < tmpPoints.size(); ++i) {
-                    if (Math.abs(tmpPoints.get(i).latitude - marker.getPosition().latitude) < 0.0005
-                            && Math.abs(tmpPoints.get(i).longitude - marker.getPosition().longitude) < 0.0005) {
-                        pos = i;
-                        System.out.println("移除第" + pos + "个");
-                        break;
+                    if (Math.sqrt(squareOfDistance(marker.getPosition(), tmpPoints.get(i))) < 0.0005) {
+                        if (pos == -1) pos = i;
+                        else if (squareOfDistance(tmpPoints.get(i), marker.getPosition())
+                                < squareOfDistance(tmpPoints.get(pos), marker.getPosition())) pos = i;
                     }
                 }
+                System.out.println("移除第" + pos + "个");
             }
 
             @Override
@@ -615,26 +673,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                     //拖拽结束时，创建新点
                     tmpPoints.add(pos, marker.getPosition());
                 }
-                //drawMap(tmpPoints);
-                //判断是否需要创建新的点
-            /*if (!isCreateMarker(marker)) {
-                //不需要
-                //如果拖拽的是状态为0的点，则不需要创建新的点，而是替换两侧的点的坐标（注意是替换set方法）。
-                replaceTwoMarker(marker);
-                refreshPolygonOptions();
-                addMarker(true);
-                createAreaStyle();
-                aMap.addPolygon(polygonOptions);
-            } else {
-                //需要
-                refreshPolygonOptions();
-                addMarker(true);
-                createAreaStyle();
-                aMap.addPolygon(polygonOptions);
-                //在拖拽点两侧添加maker
-                addTwoMarker(marker);
-                addMarker(false);
-            }*/
             }
 
             @Override
@@ -648,24 +686,15 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         });
     }
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        //printTime();
         componentBinding();//组件绑定
-        dataInsert();//插入假数据
 
         renderMap(savedInstanceState);//地图展示
-        //SpinnerSetting();//设置下拉框
-
-        getDataAsync(getPolygonUrl);
-    }
+}
 
     @Override
     public void activate(OnLocationChangedListener onLocationChangedListener) {
