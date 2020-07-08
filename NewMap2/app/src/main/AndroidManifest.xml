@@ -33,7 +33,7 @@
             android:name="com.google.android.actions"
             android:resource="@xml/network_security" />
 
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity" android:windowSoftInputMode="adjustPan|stateVisible">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
