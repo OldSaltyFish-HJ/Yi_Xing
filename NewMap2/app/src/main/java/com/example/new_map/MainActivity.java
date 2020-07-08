@@ -1,6 +1,9 @@
 package com.example.new_map;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,12 +13,16 @@ import android.content.pm.Signature;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -51,6 +58,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
@@ -99,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     /**
      * 下拉框相关变量
      */
+    LinearLayout menu;
     private Spinner spinnerButton = null;
     private Spinner spinner = null;
 
@@ -106,7 +115,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
      * 需要绑定的组件
      * */
     private EditText searchText;
-    private Button searchButton;
 
     public class NetRequest {
         public static final String host = "http://120.78.73.158/girl_hackathon/";
@@ -417,6 +425,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
             uiSettings = aMap.getUiSettings();
             aMap.setLocationSource(this);//设置了定位的监听
             uiSettings.setMyLocationButtonEnabled(true);// 是否显示定位按钮
+            uiSettings.setZoomControlsEnabled(false);
             aMap.setMyLocationEnabled(true);//显示定位层并且可以触发定位,默认是flase
             setMapAttribute();//设置地图属性
             aMap.clear();
@@ -650,15 +659,38 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         spinner.setAdapter(spinnerForCommodities);
         spinner.setOnItemSelectedListener(new spinnerForCommoditiesListener());
     }*/
-
+    private int rvHeight;
+    public void clickIcon(View view) {
+        ImageView icon = (ImageView) view;
+        RecyclerView rv = findViewById(R.id.iconlists);
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) rv.getLayoutParams();
+        if (params.height != 0) rvHeight = params.height;
+        searchText.setText(icon.getTag().toString());
+        searchButton(null);
+        iconflag=true;
+        rv.setLayoutParams(params);
+    }
     /**
      * 绑定组件
      * */
     private void componentBinding() {
         //printTime();
         searchText = (EditText)findViewById(R.id.search_text);
+        menu = findViewById(R.id.menu);
+        searchText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if (b) showMenu(null);
+            }
+        });
     }
-
+    boolean menuflag = false,iconflag = false;
+    public void showMenu(View view) {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) menu.getLayoutParams();
+        params.height = findViewById(R.id.allsearch).getHeight()/56*(56+4+8+80+8);
+        menu.setLayoutParams(params);
+        menuflag=true;
+    }
     private void location() {
         System.out.println("location");
         //初始化定位
@@ -777,19 +809,37 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                 .fillColor(colorSet);   // 多边形的填充色
         aMap.addPolygon(polygonOptions);
     }
-
+    private List<icon> iconList = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getSupportActionBar() != null){
+            getSupportActionBar().hide();
+        }
         setContentView(R.layout.activity_main);
         System.out.println(getCertificateSHA1Fingerprint(this));
+
+        initicons();
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.iconlists);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        recyclerView.setLayoutManager(layoutManager);
+        iconadapter adapter = new iconadapter(iconList);
+        recyclerView.setAdapter(adapter);
+
         componentBinding();//组件绑定
         renderMap(savedInstanceState);//地图展示
 
         getPolgonRequest.getDataAsync(NetRequest.getPolygonUrl);
         getPolgonRequest.drawGetPoints();
-}
-
+    }
+    private void initicons() {
+        iconList.add(new icon("口罩", R.drawable.mask));
+        iconList.add(new icon("手套", R.drawable.gloves));
+        iconList.add(new icon("护目镜", R.drawable.goggles));
+        iconList.add(new icon("消毒液", R.drawable.disinfectant));
+        iconList.add(new icon("洗手液", R.drawable.liquidsoap));
+    }
     @Override
     public void activate(OnLocationChangedListener onLocationChangedListener) {
         mListener = onLocationChangedListener;
@@ -829,6 +879,81 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         super.onSaveInstanceState(outState);
         //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，保存地图当前的状态
         mMapView.onSaveInstanceState(outState);
+    }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode==KeyEvent.KEYCODE_BACK) {
+            if (iconflag) {
+                RecyclerView rv =  findViewById(R.id.iconlists);
+                LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) rv.getLayoutParams();
+                params.height = rvHeight;
+                rv.setLayoutParams(params);
+                searchText.setHint("");
+                iconflag = false;
+                return false;
+            } else
+            if (menuflag) {
+                LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) menu.getLayoutParams();
+                params.height = findViewById(R.id.allsearch).getHeight() / 56 * 64;
+                menu.setLayoutParams(params);
+                menuflag = false;
+                return false;
+            } else {
+                return super.onKeyDown(keyCode, event);
+            }
+        } else {
+            return super.onKeyDown(keyCode, event);
+        }
+    }
+    public class icon {
+        private String name;
+        private int imageId;
+        public icon(String name, int imageId){
+            this.name = name;
+            this.imageId = imageId;
+
+        }
+        public String getName() {
+            return name;
+        }
+        public int getImageId() {
+            return imageId;
+        }
+    }
+    public class iconadapter extends  RecyclerView.Adapter<iconadapter.ViewHolder> {
+        private List<icon> micon;
+        class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView iconimage;
+            TextView iconname;
+            public ViewHolder(View view)  {
+                super(view);
+                iconimage =(ImageView) view.findViewById(R.id.icon_image);
+                iconname=(TextView) view.findViewById(R.id.icon_name);
+            }
+        }
+        public iconadapter(List<icon> iconlist){
+            micon=iconlist;
+        }
+
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.icon_item,parent,false);
+            ViewHolder holder = new ViewHolder(view);
+            return holder;
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position){
+            icon icon = micon.get(position);
+            holder.iconimage.setImageResource(icon.getImageId());
+            holder.iconimage.setTag(icon.getName());
+            holder.iconname.setText(icon.getName());
+        }
+
+        @Override
+        public int getItemCount(){
+            return micon.size();
+        }
     }
 }
 

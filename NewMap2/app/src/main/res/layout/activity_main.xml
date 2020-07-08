@@ -12,95 +12,65 @@
         <com.amap.api.maps.MapView
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"/>
+
         <LinearLayout
-            android:layout_height="match_parent"
             android:layout_width="match_parent"
-            android:gravity="bottom">
+            android:layout_height="match_parent"
+            android:gravity="bottom"
+            android:orientation="vertical">
+
             <LinearLayout
+                android:id="@+id/menu"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:orientation="vertical"
+                android:layout_height="64dp"
                 android:background="@drawable/radius_top_background"
-                android:elevation="20dp">
-                <!--<TextView
-                    android:layout_marginLeft="40dp"
-                    android:layout_marginRight="40dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="41dp"
-                    android:text="请选择需要的物资"
-                    android:textSize="18dp"
-                    android:gravity="center"
-                    android:layout_marginTop="20dp"/>-->
-                <!--<Spinner
-                    android:layout_marginLeft="40dp"
-                    android:layout_marginRight="40dp"
-                    android:id="@+id/spinner_commodities"
-                    android:layout_width="match_parent"
-                    android:layout_height="41dp"
-                    android:background="#F5F5F5"/>-->
+                android:elevation="20dp"
+                android:orientation="vertical">
+
                 <LinearLayout
+                    android:id="@+id/allsearch"
                     android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="30dp">
-                    <LinearLayout
-                        android:layout_marginLeft="45dp"
-                        android:layout_marginRight="45dp"
-                        android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginLeft="4dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginRight="4dp"
+                    android:background="@drawable/search_input"
+                    android:gravity="center">
+
+                    <EditText
+                        android:id="@+id/search_text"
+                        android:layout_width="240dp"
                         android:layout_height="match_parent"
+                        android:background="@null"
                         android:gravity="center"
-                        android:background="@drawable/search_input">
-                        <EditText
-                            android:id="@+id/search_text"
-                            android:background="@null"
-                            android:layout_height="match_parent"
-                            android:layout_width="200dp"
-                            android:hint="查找物资、目的地"
-                            android:gravity="center"
-                            android:textSize="20dp"/>
-                        <Button
-                            android:layout_marginLeft="15dp"
-                            android:id="@+id/search_button"
-                            android:onClick="searchButton"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/search_button"/>
-                    </LinearLayout>
+                        android:hint="搜索附近的物资"
+                        android:onClick="showMenu"
+                        android:textSize="20dp" />
+
+                    <Button
+                        android:id="@+id/search_button"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginLeft="15dp"
+                        android:background="@drawable/search_button"
+                        android:onClick="searchButton" />
 
                 </LinearLayout>
-                <!--<LinearLayout
-                    android:layout_height="90dp"
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/iconlists"
                     android:layout_width="match_parent"
-                    android:layout_marginTop="18dp"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:text="物资按钮"
-                        android:background="@drawable/circle_button_1"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:layout_marginLeft="70dp"
-                        android:gravity="center"
-                        />
-                    <TextView
-                        android:text="路线按钮"
-                        android:background="@drawable/circle_button_2"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:layout_marginLeft="100dp"
-                        android:gravity="center"
-                        />
-                </LinearLayout>-->
-                <!--<LinearLayout
-                    android:id="@+id/linearLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="10dp"
-                    android:scaleType="fitStart"
-                    tools:context="com.mecury.spinnertest.MainActivity">
-                </LinearLayout>-->
+                    android:layout_height="80dp"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="4dp">
+
+                </androidx.recyclerview.widget.RecyclerView>
+
             </LinearLayout>
+
         </LinearLayout>
     </FrameLayout>
 
