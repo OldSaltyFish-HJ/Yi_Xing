@@ -226,7 +226,7 @@ public class IndexActivity extends CheckPermissionsActivity implements INaviInfo
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         System.out.println("create IndexActivity");
-        System.out.println(MainActivity.getCertificateSHA1Fingerprint(this));
+        System.out.println(new DebugNeeds().getCertificateSHA1Fingerprint(this));
         //String packageName = new BaseActivity().getClass().getPackeage().getName();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_index);
