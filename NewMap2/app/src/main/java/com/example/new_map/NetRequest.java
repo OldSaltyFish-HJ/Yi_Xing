@@ -31,10 +31,10 @@ public class NetRequest {
      * get异步请求
      * */
     public void getDataAsync(String url) {
-        OkHttpClient client = new OkHttpClient()/*.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .build()*/;
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .build();
         Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -89,6 +89,7 @@ public class NetRequest {
             }
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                responseString = response.body().string();
                 System.out.println("response print == " + response.body().string());
                 Log.d("kwwl","获取数据成功了");
                 Log.d("kwwl","response.code()=="+response.code());

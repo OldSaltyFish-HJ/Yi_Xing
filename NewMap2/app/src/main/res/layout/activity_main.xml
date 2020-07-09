@@ -12,8 +12,23 @@
         <com.amap.api.maps.MapView
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
-
+            android:layout_height="match_parent">
+        </com.amap.api.maps.MapView>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="350dp"
+            android:layout_gravity="right">
+            <Button
+                android:id="@+id/submit_button"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:visibility="gone"
+                android:onClick="submitButton"
+                android:textSize="12sp"
+                android:background="@drawable/submit_button"
+                android:text="提交"/>
+        </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -23,18 +38,18 @@
             <LinearLayout
                 android:id="@+id/menu"
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
+                android:layout_height="68dp"
                 android:background="@drawable/radius_top_background"
-                android:elevation="20dp"
+                android:elevation="8dp"
                 android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/allsearch"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginLeft="4dp"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginRight="4dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginRight="10dp"
                     android:background="@drawable/search_input"
                     android:gravity="center">
 
@@ -47,26 +62,22 @@
                         android:hint="搜索附近的物资"
                         android:onClick="showMenu"
                         android:textSize="20dp" />
-
                     <Button
                         android:id="@+id/search_button"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:layout_marginLeft="15dp"
                         android:background="@drawable/search_button"
-                        android:onClick="searchButton" />
-
+                        android:onClick="searchButton"/>
                 </LinearLayout>
-
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/iconlists"
                     android:layout_width="match_parent"
                     android:layout_height="80dp"
                     android:layout_marginTop="8dp"
                     android:orientation="horizontal"
-                    android:paddingLeft="4dp"
-                    android:paddingRight="4dp">
-
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp">
                 </androidx.recyclerview.widget.RecyclerView>
 
             </LinearLayout>

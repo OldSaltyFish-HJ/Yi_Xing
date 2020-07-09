@@ -57,6 +57,8 @@ import java.util.Vector;
 public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClickListener,
         AMap.InfoWindowAdapter, AMap.OnMapClickListener, LocationSource, AMapLocationListener {
 
+    private int isAdmin = 0;
+
     /**
      * 地图相关变量
      */
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     int prePolygonId = -1;//前一次onLoacationChange时所在区域ID
     double latitude, longitude;//当前位置经纬度
     double preLatitude = -1, preLongitude = -1;
-    private Vector<LatLng> clickedPoints = new Vector<>();
+
 
     /**
      * 点标记相关变量
@@ -80,25 +82,82 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     private Marker clickMaker;//当前点击的marker
     View infoWindow = null;//自定义窗体
 
-    LinearLayout menu;
+
 
     /**
      * 需要绑定的组件
      * */
     private EditText searchText;
+    private LinearLayout menu;
+    private Button submitButton;
 
-
-    private class PolygonManager {
-        private class MyPolygon {
-            public Polygon polygon;
-            public int polygonId;
-            public int color;
-            MyPolygon(Polygon _polygon, int _polygonId, int _color) {
-                this.polygon = _polygon;
-                this.polygonId = _polygonId;
-                this.color = _color;
-            }
+    /**
+     * 管理员绘制新的多边形
+     * */
+    public class MyMarker {
+        public Marker marker;
+        public LatLng latLng;
+        public MyMarker(Marker _marker, LatLng _latLng) {
+            this.marker = _marker;
+            this.latLng = _latLng;
         }
+    }
+    private class PolygonDrawer {
+        Polygon newPolygon = null;
+        public Vector<MyMarker> clickedPoints = new Vector<>();
+        public void addPoint(LatLng latLng) {
+            if (newPolygon != null) newPolygon.remove();
+            Marker marker = drawMarker(latLng, "绘制多边形", "第" + clickedPoints.size() + "点", true);
+            clickedPoints.add(new MyMarker(marker, latLng));
+            PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
+            // 添加 多边形的每个顶点（顺序添加）
+            for (MyMarker point : clickedPoints) {
+                polygonOptions.add(point.latLng);
+            }
+            polygonOptions.strokeWidth(4) // 多边形的边框
+                    .strokeColor(Color.argb(50, 1, 1, 1)) // 边框颜色
+                    .fillColor(Color.argb(100, 0, 0, 0));   // 多边形的填充色
+            newPolygon = aMap.addPolygon(polygonOptions);
+        }
+        public void moveTo(int pos, LatLng latLng) {
+            clickedPoints.get(pos).marker.remove();
+            clickedPoints.remove(pos);
+            Marker marker = drawMarker(latLng, "绘制多边形", "第" + pos + "点", true);
+            clickedPoints.add(pos, new MyMarker(marker, latLng));
+            PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
+            // 添加 多边形的每个顶点（顺序添加）
+            for (MyMarker point : clickedPoints) {
+                polygonOptions.add(point.latLng);
+            }
+            polygonOptions.strokeWidth(4) // 多边形的边框
+                    .strokeColor(Color.argb(50, 1, 1, 1)) // 边框颜色
+                    .fillColor(Color.argb(100, 0, 0, 0));   // 多边形的填充色
+            newPolygon.remove();
+            newPolygon = aMap.addPolygon(polygonOptions);
+        }
+        public void clear() {
+            newPolygon = null;
+            for (MyMarker marker : clickedPoints) {
+                marker.marker.remove();
+            }
+            clickedPoints.clear();
+        }
+    }
+
+    /**
+     * 管理危险区域多边形
+     * */
+    private class MyPolygon {
+        public Polygon polygon;
+        public int polygonId;
+        public int color;
+        MyPolygon(Polygon _polygon, int _polygonId, int _color) {
+            this.polygon = _polygon;
+            this.polygonId = _polygonId;
+            this.color = _color;
+        }
+    }
+    private class PolygonManager {
         private Vector<MyPolygon> myPolygonList = new Vector<>();
         private HashMap<Pair<Integer, Integer>, Polygon> myPolygonMap = new HashMap<>();
         /**
@@ -106,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
          * 按顺序连接points中的点并填充
          * */
         public void drawPolygon(Vector<LatLng> points, int polygonId, int colorSet) {
-            //System.out.println("polygonId == " + polygonId);
             if (!myPolygonMap.containsKey(Pair.create(polygonId, colorSet))) {
                 PolygonOptions polygonOptions = new PolygonOptions();// 多边形参数对象
                 // 添加 多边形的每个顶点（顺序添加）
@@ -151,14 +209,21 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         private void drawGetPolygons() {
             Vector<Polygon>tmpGetPolygonArray = new Vector<>(getPolygonArray);
             for (int i = 0; i < tmpGetPolygonArray.size(); ++i) {
-                if (tmpGetPolygonArray.get(i).risk > 0.6) {
+                //System.out.println("polygonId == " + tmpGetPolygonArray.get(i).polygonId);
+                if (isAdmin == 0) {
+                    if (tmpGetPolygonArray.get(i).risk > 0.6) {
+                        polygonManager.drawPolygon(tmpGetPolygonArray.get(i).pointList,
+                                tmpGetPolygonArray.get(i).polygonId,
+                                Color.argb(170, 200, 0, 0));
+                    } else if (tmpGetPolygonArray.get(i).risk > 0.3) {
+                        polygonManager.drawPolygon(tmpGetPolygonArray.get(i).pointList,
+                                tmpGetPolygonArray.get(i).polygonId,
+                                Color.argb(130, 200, 0, 0));
+                    }
+                } else {
                     polygonManager.drawPolygon(tmpGetPolygonArray.get(i).pointList,
                             tmpGetPolygonArray.get(i).polygonId,
-                            Color.argb(170, 200, 0, 0));
-                } else if (tmpGetPolygonArray.get(i).risk > 0.3) {
-                    polygonManager.drawPolygon(tmpGetPolygonArray.get(i).pointList,
-                            tmpGetPolygonArray.get(i).polygonId,
-                            Color.argb(130, 200, 0, 0));
+                            Color.argb(100, 0, 0, 0));
                 }
             }
         }
@@ -191,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
             markerList.clear();
             for (Shop shop : getShopArray) {
                 Marker marker = drawMarker(new LatLng(Double.parseDouble(shop.latitude), Double.parseDouble(shop.longitude)),
-                        shop.name, shop.remain, false);
+                        shop.name, "商品余量: " + shop.remain, false);
                 markerList.add(marker);
                 //System.out.println(new Gson().toJson(shop));
             }
@@ -216,9 +281,23 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
             drawShopMarker();
         }
     }
+    private class PostPolygonInfo extends NetRequest {
+        @Override
+        public void afterPost() {
+            super.afterPost();
+            System.out.println(Integer.parseInt(responseString));
+            polygonManager.myPolygonList.add(new MyPolygon(polygonDrawer.newPolygon,
+                                                            Integer.parseInt(responseString),
+                                                            Color.argb(100, 0, 0, 0)));
+            polygonDrawer.clear();
+        }
+    }
+
     private PolygonManager polygonManager = new PolygonManager();
+    private PostPolygonInfo postPolygonInfo = new PostPolygonInfo();
     public GetPolgonRequest getPolgonRequest = new GetPolgonRequest();
     public GetShopsRequest getShopsRequest = new GetShopsRequest();
+    public PolygonDrawer polygonDrawer = new PolygonDrawer();
 
     /**
      * 绘制坐标标记
@@ -285,11 +364,11 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                 pos = -1;
                 System.out.println(marker.getPosition().latitude + ", " + marker.getPosition().longitude);
                 //判断哪个已经marker离点击的位置距离小于0.0005且最靠近点击的位置，就是我们实际要改变坐标的点
-                for (int i = 0; i < clickedPoints.size(); ++i) {
-                    if (Math.sqrt(Distance(marker.getPosition(), clickedPoints.get(i))) < 0.0005) {
+                for (int i = 0; i < polygonDrawer.clickedPoints.size(); ++i) {
+                    if (Distance(marker.getPosition(), polygonDrawer.clickedPoints.get(i).latLng) < 100) {
                         if (pos == -1) pos = i;
-                        else if (Distance(clickedPoints.get(i), marker.getPosition())
-                                < Distance(clickedPoints.get(pos), marker.getPosition())) pos = i;
+                        else if (Distance(polygonDrawer.clickedPoints.get(i).latLng, marker.getPosition())
+                                < Distance(polygonDrawer.clickedPoints.get(pos).latLng, marker.getPosition())) pos = i;
                     }
                 }
                 System.out.println("移除第" + pos + "个");
@@ -298,18 +377,14 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
             @Override
             public void onMarkerDragEnd(Marker marker) {
                 if (pos != -1) {
-                    clickedPoints.remove(pos);
-                    //拖拽结束时，创建新点
-                    clickedPoints.add(pos, marker.getPosition());
+                    polygonDrawer.moveTo(pos, marker.getPosition());
                 }
             }
 
             @Override
             public void onMarkerDrag(Marker marker) {
                 if (pos != -1) {
-                    clickedPoints.remove(pos);
-                    clickedPoints.add(pos, marker.getPosition());
-                    //drawMap();
+                    polygonDrawer.moveTo(pos, marker.getPosition());
                 }
             }
         });
@@ -324,7 +399,8 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                     getPolgonRequest.getDataAsync(NetRequest.getPolygonUrl
                             + "?prePolygonId=" + prePolygonId
                             + "&latitude=" + latitude
-                            + "&longitude=" + longitude);
+                            + "&longitude=" + longitude
+                            + "&isAdmin=" + isAdmin);
                     prePolygonId = getPolgonRequest.getPolygonId;
                 }
                 else {
@@ -381,18 +457,12 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         if (clickMaker != null && clickMaker.isInfoWindowShown()) {
             clickMaker.hideInfoWindow();
         }
-        //aMap.clear();
-
         //点击改变蓝圆标位置，在控制台打印点击位置
         System.out.println(latLng.latitude + "," + latLng.longitude);
-        /*tmpPoints.add(latLng);
-        drawMap(tmpPoints);
-        MarkerOptions markerOptions = new MarkerOptions();
-        //markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.placeholder));
-        markerOptions.position(latLng);
-        Marker marker = aMap.addMarker(markerOptions);*/
+        if (isAdmin == 1) {
+            polygonDrawer.addPoint(latLng);
+        }
 
-        //aMap.moveCamera(CameraUpdateFactory.changeLatLng(latLng));
     }
 
     /**
@@ -410,8 +480,28 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
      * */
     public void navigateButton(View view) {
         Intent intent = new Intent();
-        intent.setClass(MainActivity.this, IndexActivity.class);
+        intent.setClass(MainActivity.this, WalkRouteCalculateActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * 多边形提交按钮绑定事件
+     * */
+    public void submitButton(View view) {
+        Vector<LatLng> points = new Vector<>();
+        for (MyMarker point : polygonDrawer.clickedPoints) {
+            points.add(point.latLng);
+        }
+        postPolygonInfo.postDataWithParame(NetRequest.coordinatesUploadUrl, new Gson().toJson(points));
+    }
+
+    /**
+     * 取消按钮绑定事件
+     * */
+    public void cancelButton(View view) {
+        if (clickMaker != null && clickMaker.isInfoWindowShown()) {
+            clickMaker.hideInfoWindow();
+        }
     }
 
     /**
@@ -441,7 +531,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             View v = getCurrentFocus();
             if (isShouldHideInput(v, ev)) {
-
                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (imm != null) {
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
@@ -468,11 +557,21 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     }
 
     /**
-     * 绑定组件
-     * */
+         * 绑定组件
+         * */
     private void componentBinding() {
         searchText = (EditText)findViewById(R.id.search_text);
         menu = findViewById(R.id.menu);
+        submitButton = (Button)findViewById(R.id.submit_button);
+        if (isAdmin == 1) submitButton.setVisibility(View.VISIBLE);
+
+        initicons();
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.iconlists);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        recyclerView.setLayoutManager(layoutManager);
+        iconadapter adapter = new iconadapter(iconList);
+        recyclerView.setAdapter(adapter);
         searchText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
@@ -487,6 +586,10 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         menu.setLayoutParams(params);
         menuflag=true;
     }
+
+    /**
+     * 定位设置
+     * */
     private void location() {
         System.out.println("location");
         //初始化定位
@@ -533,7 +636,8 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
                     getPolgonRequest.getDataAsync(NetRequest.getPolygonUrl
                                                     + "?prePolygonId=" + prePolygonId
                                                     + "&latitude=" + latitude
-                                                    + "&longitude=" + longitude);
+                                                    + "&longitude=" + longitude
+                                                    + "&isAdmin=" + isAdmin);
                     prePolygonId = getPolgonRequest.getPolygonId;
                 }
                 preLatitude = tmpLatitude;
@@ -601,13 +705,6 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
         }
         setContentView(R.layout.activity_main);
         System.out.println(new DebugNeeds().getCertificateSHA1Fingerprint(this));
-        initicons();
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.iconlists);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
-        recyclerView.setLayoutManager(layoutManager);
-        iconadapter adapter = new iconadapter(iconList);
-        recyclerView.setAdapter(adapter);
         componentBinding();//组件绑定
         renderMap(savedInstanceState);//地图展示
     }

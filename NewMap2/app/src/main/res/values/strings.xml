@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NewMap2</string>
+    <string name="app_name">疫行</string>
     <string name="title_activity_basic_navi">BasicNaviActivity</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>

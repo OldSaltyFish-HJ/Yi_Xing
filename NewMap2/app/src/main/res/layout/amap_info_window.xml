@@ -3,43 +3,54 @@
     android:layout_width="160dp"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@drawable/window_background"
+    android:elevation="10dp">
     <!--@drawable/infowindow为.9图-->
 
     <TextView
         android:id="@+id/info_window_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="5dp"
+        android:gravity="left"
         android:padding="5dp"
         android:textColor="#336699"
-        android:textSize="20dp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/info_window_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="5dp"
+        android:gravity="left"
         android:padding="5dp"
-        android:textColor="#003300"
+        android:textColor="#000000"
         android:textSize="12sp" />
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content">
+
         <Button
             android:id="@+id/navigate_button"
+            android:layout_width="106dp"
+            android:layout_height="30dp"
+            android:background="@drawable/window_navigate_button"
+            android:gravity="center"
             android:onClick="navigateButton"
-            android:layout_width="80dp"
-            android:layout_height="40dp"
+            android:text="导航" />
+        <Button
+            android:id="@+id/cancel_button"
+            android:onClick="cancelButton"
+            android:layout_width="54dp"
+            android:layout_height="30dp"
             android:gravity="center"
-            android:text="跳转" />
-        <TextView
-            android:layout_width="80dp"
-            android:layout_height="40dp"
-            android:gravity="center"
-            android:text="取消" />
+            android:text="取消"
+            android:background="@drawable/window_cancel_button"/>
     </LinearLayout>
 
 </LinearLayout>
