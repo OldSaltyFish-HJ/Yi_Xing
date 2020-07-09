@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="5dp"
-        android:textColor="#00ff00"
+        android:textColor="#336699"
         android:textSize="20dp" />
 
     <TextView
@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="5dp"
-        android:textColor="#ff0000"
+        android:textColor="#003300"
         android:textSize="12sp" />
 
     <LinearLayout
