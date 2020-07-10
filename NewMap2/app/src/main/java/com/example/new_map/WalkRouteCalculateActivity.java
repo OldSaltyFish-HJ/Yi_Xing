@@ -1,7 +1,9 @@
 package com.example.new_map;
 
+import android.content.Intent;
 import android.os.Bundle;
 
+import com.amap.api.maps.model.LatLng;
 import com.amap.api.navi.AMapNaviView;
 import com.amap.api.navi.enums.NaviType;
 import com.amap.api.navi.model.NaviLatLng;
@@ -9,12 +11,20 @@ import com.amap.api.navi.model.NaviLatLng;
 
 
 public class WalkRouteCalculateActivity extends BaseActivity {
-
+    private NaviLatLng start, end;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_basic_navi);
+
+        Intent intent = getIntent();//声明一个对象，并获得跳转过来的Intent对象
+        // 从intent对象中获得数据
+        double startlat = intent.getDoubleExtra("startlat", 30.620224219303456);
+        double startlng = intent.getDoubleExtra("startlng", 104.0484742901689);
+        double endlat = intent.getDoubleExtra("endlat", 30.6216079800);
+        double endlng = intent.getDoubleExtra("endlng", 104.0499830327);
+        start = new NaviLatLng(startlat, startlng);
+        end = new NaviLatLng(endlat, endlng);
         mAMapNaviView = (AMapNaviView) findViewById(R.id.navi_view);
         mAMapNaviView.onCreate(savedInstanceState);
         mAMapNaviView.setAMapNaviViewListener(this);
@@ -25,7 +35,7 @@ public class WalkRouteCalculateActivity extends BaseActivity {
     @Override
     public void onInitNaviSuccess() {
         super.onInitNaviSuccess();
-        mAMapNavi.calculateWalkRoute(new NaviLatLng(30.6204446529, 104.0489101491), new NaviLatLng(30.6200187886, 104.0501694462));
+        mAMapNavi.calculateWalkRoute(start, end);
     }
 
     @Override

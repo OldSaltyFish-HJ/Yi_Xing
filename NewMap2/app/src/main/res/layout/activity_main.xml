@@ -17,7 +17,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginTop="350dp"
+            android:layout_marginTop="500dp"
             android:layout_gravity="right">
             <Button
                 android:id="@+id/submit_button"

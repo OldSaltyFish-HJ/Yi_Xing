@@ -481,6 +481,10 @@ public class MainActivity extends AppCompatActivity implements AMap.OnMarkerClic
     public void navigateButton(View view) {
         Intent intent = new Intent();
         intent.setClass(MainActivity.this, WalkRouteCalculateActivity.class);
+        intent.putExtra("startlat", latitude);
+        intent.putExtra("startlng", longitude);
+        intent.putExtra("endlat", clickMaker.getPosition().latitude);
+        intent.putExtra("endlng", clickMaker.getPosition().longitude);
         startActivity(intent);
     }
 
